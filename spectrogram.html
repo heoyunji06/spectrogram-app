@@ -1,0 +1,3512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Real-Time Audio Spectrogram</title>
+
+<style>
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    color: #edf5f8;
+
+    background:
+        radial-gradient(
+            circle at 15% 0%,
+            #29495b 0%,
+            #12232e 35%,
+            #080d12 80%
+        );
+}
+
+button,
+input {
+    font-family: inherit;
+}
+
+.container {
+    width: min(1450px, 94%);
+    margin: 0 auto;
+    padding: 34px 0 55px;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+    margin-bottom: 22px;
+}
+
+.badge {
+    display: inline-block;
+
+    padding: 6px 12px;
+
+    border-radius: 999px;
+
+    background:
+        rgba(255,255,255,0.055);
+
+    border:
+        1px solid rgba(255,255,255,0.12);
+
+    color: #a9ddea;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 0.13em;
+}
+
+h1 {
+    margin: 14px 0 8px;
+
+    font-size:
+        clamp(34px, 5vw, 56px);
+
+    line-height: 1.03;
+
+    letter-spacing: -0.045em;
+}
+
+.subtitle {
+    max-width: 850px;
+
+    margin: 0;
+
+    color: #9dafb9;
+
+    font-size: 14px;
+
+    line-height: 1.75;
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.card {
+    background:
+        rgba(10,18,25,0.94);
+
+    border:
+        1px solid rgba(255,255,255,0.09);
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 22px 60px rgba(0,0,0,0.28);
+}
+
+
+/* =========================================================
+   CONTROLS
+========================================================= */
+
+.controls {
+    padding: 18px;
+
+    margin-bottom: 18px;
+}
+
+.control-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+.control-group {
+    min-width: 0;
+
+    padding: 14px;
+
+    border-radius: 13px;
+
+    background:
+        rgba(255,255,255,0.035);
+
+    border:
+        1px solid rgba(255,255,255,0.06);
+}
+
+.control-label {
+    margin-bottom: 9px;
+
+    color: #8196a2;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 0.12em;
+
+    text-transform: uppercase;
+}
+
+.button-row {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 7px;
+}
+
+button,
+.file-label {
+    min-height: 37px;
+
+    padding: 8px 12px;
+
+    border-radius: 9px;
+
+    border:
+        1px solid rgba(255,255,255,0.1);
+
+    background:
+        rgba(255,255,255,0.065);
+
+    color: #eaf3f7;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.15s ease;
+}
+
+button:hover,
+.file-label:hover {
+    background:
+        rgba(255,255,255,0.13);
+
+    border-color:
+        rgba(255,255,255,0.20);
+
+    transform:
+        translateY(-1px);
+}
+
+button:active {
+    transform:
+        translateY(0);
+}
+
+button.primary {
+    background: #4dbbd7;
+
+    color: #07151c;
+
+    border-color: #4dbbd7;
+}
+
+button.primary:hover {
+    background: #69cbe3;
+}
+
+button.active {
+    background: #e0f7ff;
+
+    color: #0a2029;
+
+    border-color: #e0f7ff;
+}
+
+button.danger {
+    background:
+        rgba(210,75,75,0.12);
+
+    color: #ffb8b8;
+
+    border-color:
+        rgba(210,75,75,0.3);
+}
+
+button:disabled {
+    opacity: 0.4;
+
+    cursor: not-allowed;
+
+    transform: none;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.status-bar {
+    display: flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    gap: 15px;
+
+    margin-top: 14px;
+
+    padding-top: 14px;
+
+    border-top:
+        1px solid rgba(255,255,255,0.07);
+}
+
+.status {
+    display: flex;
+
+    align-items:
+        center;
+
+    gap: 9px;
+
+    color: #a8bac3;
+
+    font-size: 12px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+
+    flex: 0 0 auto;
+
+    border-radius: 50%;
+
+    background: #e0b85d;
+}
+
+.status-dot.active {
+    background: #62d995;
+
+    box-shadow:
+        0 0 13px rgba(98,217,149,0.72);
+}
+
+.status-dot.error {
+    background: #e66c6c;
+
+    box-shadow:
+        0 0 12px rgba(230,108,108,0.5);
+}
+
+.file-name {
+    max-width: 45%;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+    color: #748994;
+
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   VISUALIZATION
+========================================================= */
+
+.visualization {
+    padding: 18px;
+
+    margin-bottom: 18px;
+}
+
+.visualization-header {
+    display: flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        flex-start;
+
+    gap: 20px;
+
+    padding:
+        3px 3px 15px;
+}
+
+.visualization-title {
+    font-size: 17px;
+
+    font-weight: 700;
+}
+
+.visualization-description {
+    max-width: 720px;
+
+    margin-top: 5px;
+
+    color: #7f939f;
+
+    font-size: 11px;
+
+    line-height: 1.65;
+}
+
+
+/* =========================================================
+   METRICS
+========================================================= */
+
+.metrics {
+    display: flex;
+
+    gap: 8px;
+}
+
+.metric {
+    min-width: 112px;
+
+    padding: 8px 10px;
+
+    border-radius: 10px;
+
+    background:
+        rgba(255,255,255,0.035);
+
+    border:
+        1px solid rgba(255,255,255,0.07);
+}
+
+.metric-label {
+    color: #71858f;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.08em;
+}
+
+.metric-value {
+    margin-top: 3px;
+
+    color: #d9f3fb;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   CANVAS
+========================================================= */
+
+.canvas-container {
+    position: relative;
+
+    width: 100%;
+
+    height:
+        min(70vh, 700px);
+
+    min-height: 470px;
+
+    overflow: hidden;
+
+    border-radius: 13px;
+
+    border:
+        1px solid rgba(255,255,255,0.08);
+
+    background: #04080c;
+}
+
+#spectrogramCanvas {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+}
+
+.empty-state {
+    position: absolute;
+
+    inset: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-direction: column;
+
+    gap: 8px;
+
+    pointer-events: none;
+}
+
+.empty-symbol {
+    color: #50636e;
+
+    font-size: 42px;
+}
+
+.empty-title {
+    color: #9aacb5;
+
+    font-size: 15px;
+
+    font-weight: 700;
+}
+
+.empty-text {
+    max-width: 440px;
+
+    color: #647984;
+
+    font-size: 11px;
+
+    line-height: 1.65;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   INFORMATION CARDS
+========================================================= */
+
+.info-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 18px;
+
+    margin-bottom: 18px;
+}
+
+.info-card {
+    padding: 19px;
+}
+
+.info-card h2 {
+    margin: 0 0 8px;
+
+    font-size: 15px;
+}
+
+.info-card p {
+    margin: 0;
+
+    color: #899ca7;
+
+    font-size: 11px;
+
+    line-height: 1.75;
+}
+
+
+/* =========================================================
+   VALIDATION
+========================================================= */
+
+.validation {
+    margin-top: 12px;
+
+    padding: 12px;
+
+    border-radius: 10px;
+
+    background:
+        rgba(255,255,255,0.035);
+
+    border:
+        1px solid rgba(255,255,255,0.06);
+}
+
+.validation-row {
+    display: flex;
+
+    justify-content:
+        space-between;
+
+    gap: 10px;
+
+    padding: 5px 0;
+
+    font-size: 11px;
+}
+
+.validation-row span:first-child {
+    color: #778b96;
+}
+
+.validation-row span:last-child {
+    color: #d8ebf1;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   AI ACKNOWLEDGMENT
+========================================================= */
+
+.ai-note {
+    padding: 17px;
+
+    border-radius: 14px;
+
+    background:
+        rgba(75,170,200,0.08);
+
+    border:
+        1px solid rgba(75,170,200,0.18);
+
+    color: #91aab6;
+
+    font-size: 11px;
+
+    line-height: 1.75;
+}
+
+.ai-note strong {
+    color: #ccebf4;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .control-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .info-grid {
+        grid-template-columns:
+            1fr;
+    }
+
+    .metrics {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+
+    .container {
+        width: 94%;
+
+        padding-top: 20px;
+    }
+
+    .control-grid {
+        grid-template-columns:
+            1fr;
+    }
+
+    .canvas-container {
+        min-height: 410px;
+    }
+
+    .status-bar {
+        flex-direction: column;
+
+        align-items: flex-start;
+    }
+
+    .file-name {
+        max-width: 100%;
+    }
+}
+</style>
+</head>
+
+
+<body>
+
+<div class="container">
+
+
+<!-- =========================================================
+     HEADER
+========================================================= -->
+
+<header class="header">
+
+    <div class="badge">
+        AUDIO SIGNAL ANALYSIS
+    </div>
+
+    <h1>
+        Real-Time Audio Spectrogram
+    </h1>
+
+    <p class="subtitle">
+        A browser-based spectrogram that visualizes
+        the frequency content of microphone input and
+        audio files using Fast Fourier Transform (FFT).
+    </p>
+
+</header>
+
+
+<!-- =========================================================
+     CONTROL PANEL
+========================================================= -->
+
+<section class="card controls">
+
+    <div class="control-grid">
+
+
+        <!-- INPUT -->
+
+        <div class="control-group">
+
+            <div class="control-label">
+                Input Source
+            </div>
+
+            <div class="button-row">
+
+                <button
+                    id="micButton"
+                    class="primary"
+                >
+                    🎤 Microphone
+                </button>
+
+                <label
+                    for="audioFile"
+                    class="file-label"
+                >
+                    📁 Audio File
+                </label>
+
+                <input
+                    id="audioFile"
+                    type="file"
+                    accept="audio/*"
+                >
+
+            </div>
+
+        </div>
+
+
+        <!-- SCALE -->
+
+        <div class="control-group">
+
+            <div class="control-label">
+                Frequency Scale
+            </div>
+
+            <div class="button-row">
+
+                <button
+                    id="linearButton"
+                    class="active"
+                >
+                    Linear
+                </button>
+
+                <button
+                    id="logButton"
+                >
+                    Logarithmic
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- PLAYBACK -->
+
+        <div class="control-group">
+
+            <div class="control-label">
+                Playback
+            </div>
+
+            <div class="button-row">
+
+                <button
+                    id="startButton"
+                >
+                    ▶ Start
+                </button>
+
+                <button
+                    id="pauseButton"
+                >
+                    ⏸ Pause
+                </button>
+
+                <button
+                    id="stopButton"
+                    class="danger"
+                >
+                    ■ Stop
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- DISPLAY -->
+
+        <div class="control-group">
+
+            <div class="control-label">
+                Display
+            </div>
+
+            <div class="button-row">
+
+                <button
+                    id="clearButton"
+                >
+                    ↻ Clear
+                </button>
+
+                <button
+                    id="freezeButton"
+                >
+                    ⏸ Freeze
+                </button>
+
+                <button
+                    id="validationButton"
+                >
+                    440 Hz Validation
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- STATUS -->
+
+    <div class="status-bar">
+
+        <div class="status">
+
+            <div
+                id="statusDot"
+                class="status-dot"
+            ></div>
+
+            <span id="statusText">
+                Ready — select Microphone or Audio File.
+            </span>
+
+        </div>
+
+        <div
+            id="fileName"
+            class="file-name"
+        >
+            No audio file selected
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     SPECTROGRAM
+========================================================= -->
+
+<section class="card visualization">
+
+    <div class="visualization-header">
+
+        <div>
+
+            <div class="visualization-title">
+                Spectrogram
+            </div>
+
+            <div class="visualization-description">
+                Frequency is shown vertically and time is
+                shown horizontally. Brighter colors indicate
+                stronger frequency components.
+            </div>
+
+        </div>
+
+
+        <div class="metrics">
+
+            <div class="metric">
+
+                <div class="metric-label">
+                    PEAK FREQUENCY
+                </div>
+
+                <div
+                    id="peakFrequency"
+                    class="metric-value"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="metric">
+
+                <div class="metric-label">
+                    SAMPLE RATE
+                </div>
+
+                <div
+                    id="sampleRate"
+                    class="metric-value"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="metric">
+
+                <div class="metric-label">
+                    FFT SIZE
+                </div>
+
+                <div
+                    id="fftSizeDisplay"
+                    class="metric-value"
+                >
+                    4096
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="canvas-container">
+
+        <canvas
+            id="spectrogramCanvas"
+        ></canvas>
+
+
+        <div
+            id="emptyState"
+            class="empty-state"
+        >
+
+            <div class="empty-symbol">
+                ◌
+            </div>
+
+            <div class="empty-title">
+                Waiting for audio input
+            </div>
+
+            <div class="empty-text">
+                Click Microphone to analyze sound from
+                your surroundings, or select an audio file
+                to analyze a recorded signal.
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     INFORMATION
+========================================================= -->
+
+<section class="info-grid">
+
+
+    <div class="card info-card">
+
+        <h2>
+            Analysis Method
+        </h2>
+
+        <p>
+            The Web Audio API receives the audio signal.
+            AnalyserNode performs FFT analysis and provides
+            the magnitude of frequency components.
+            Consecutive FFT frames are displayed from left
+            to right to form the spectrogram.
+        </p>
+
+    </div>
+
+
+    <div class="card info-card">
+
+        <h2>
+            Frequency Validation
+        </h2>
+
+        <p>
+            A known-frequency sine wave can be used to
+            verify the frequency calibration. An A4 tone
+            has a fundamental frequency of approximately
+            440 Hz. Click the validation button to zoom
+            the frequency axis to 0–2 kHz.
+        </p>
+
+
+        <div class="validation">
+
+            <div class="validation-row">
+
+                <span>
+                    Reference
+                </span>
+
+                <span>
+                    440 Hz
+                </span>
+
+            </div>
+
+
+            <div class="validation-row">
+
+                <span>
+                    Measured peak
+                </span>
+
+                <span id="validationPeak">
+                    —
+                </span>
+
+            </div>
+
+
+            <div class="validation-row">
+
+                <span>
+                    Error
+                </span>
+
+                <span id="validationError">
+                    —
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="card info-card">
+
+        <h2>
+            Axis & Scale
+        </h2>
+
+        <p>
+            The horizontal axis represents time in seconds.
+            The vertical axis represents frequency in Hertz
+            (Hz). The frequency axis can be switched between
+            linear and logarithmic scales.
+        </p>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     AI ACKNOWLEDGMENT
+========================================================= -->
+
+<div class="ai-note">
+
+    <strong>AI Tool Acknowledgment:</strong>
+
+    ChatGPT was used to assist with the implementation
+    and debugging of this spectrogram application,
+    including the Web Audio API, FFT analysis, Canvas
+    visualization, microphone input, audio-file input,
+    high-resolution rendering, and linear/logarithmic
+    frequency-axis scaling.
+
+    Example prompts used:
+
+    “How can I implement a real-time microphone
+    spectrogram using the Web Audio API in a single
+    HTML file?”
+
+    “How can I implement a logarithmic frequency axis
+    for a Canvas-based spectrogram?”
+
+    “How can I improve FFT frequency resolution and
+    Canvas rendering quality for a browser spectrogram?”
+
+</div>
+
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   DOM ELEMENTS
+========================================================= */
+
+const canvas =
+    document.getElementById(
+        "spectrogramCanvas"
+    );
+
+const ctx =
+    canvas.getContext(
+        "2d"
+    );
+
+
+const micButton =
+    document.getElementById(
+        "micButton"
+    );
+
+const audioFileInput =
+    document.getElementById(
+        "audioFile"
+    );
+
+const linearButton =
+    document.getElementById(
+        "linearButton"
+    );
+
+const logButton =
+    document.getElementById(
+        "logButton"
+    );
+
+const startButton =
+    document.getElementById(
+        "startButton"
+    );
+
+const pauseButton =
+    document.getElementById(
+        "pauseButton"
+    );
+
+const stopButton =
+    document.getElementById(
+        "stopButton"
+    );
+
+const clearButton =
+    document.getElementById(
+        "clearButton"
+    );
+
+const freezeButton =
+    document.getElementById(
+        "freezeButton"
+    );
+
+const validationButton =
+    document.getElementById(
+        "validationButton"
+    );
+
+const statusText =
+    document.getElementById(
+        "statusText"
+    );
+
+const statusDot =
+    document.getElementById(
+        "statusDot"
+    );
+
+const fileName =
+    document.getElementById(
+        "fileName"
+    );
+
+const peakFrequency =
+    document.getElementById(
+        "peakFrequency"
+    );
+
+const sampleRateDisplay =
+    document.getElementById(
+        "sampleRate"
+    );
+
+const validationPeak =
+    document.getElementById(
+        "validationPeak"
+    );
+
+const validationError =
+    document.getElementById(
+        "validationError"
+    );
+
+const emptyState =
+    document.getElementById(
+        "emptyState"
+    );
+
+
+/* =========================================================
+   AUDIO
+========================================================= */
+
+let audioContext = null;
+
+let analyser = null;
+
+let microphoneStream = null;
+
+let microphoneSource = null;
+
+let audioElement = null;
+
+let audioSource = null;
+
+let frequencyData = null;
+
+let animationFrame = null;
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+let currentInput = null;
+
+let frequencyScale = "linear";
+
+let running = false;
+
+let frozen = false;
+
+let validationMode = false;
+
+
+/* =========================================================
+   FFT
+========================================================= */
+
+/*
+    Increased from 2048 to 4096.
+
+    At 48 kHz sample rate:
+
+        48000 / 4096
+        ≈ 11.72 Hz/bin
+
+    This provides substantially better frequency
+    resolution than the previous 2048-point FFT.
+*/
+
+const FFT_SIZE = 4096;
+
+
+/* =========================================================
+   FREQUENCY RANGES
+========================================================= */
+
+const FULL_MAX_FREQUENCY =
+    24000;
+
+const VALIDATION_MAX_FREQUENCY =
+    2000;
+
+
+/* =========================================================
+   CANVAS LAYOUT
+========================================================= */
+
+const AXIS_LEFT = 82;
+
+const AXIS_RIGHT = 22;
+
+const AXIS_TOP = 28;
+
+const AXIS_BOTTOM = 55;
+
+
+/* =========================================================
+   HIGH-RESOLUTION SPECTROGRAM BUFFER
+========================================================= */
+
+/*
+    IMPORTANT:
+
+    This buffer is declared BEFORE resizeCanvas()
+    is ever called.
+
+    This avoids:
+
+    Cannot access 'spectrogramBuffer'
+    before initialization
+*/
+
+const spectrogramBuffer =
+    document.createElement(
+        "canvas"
+    );
+
+const bufferCtx =
+    spectrogramBuffer.getContext(
+        "2d",
+        {
+            alpha: false
+        }
+    );
+
+
+/* =========================================================
+   CANVAS STATE
+========================================================= */
+
+let canvasWidth = 0;
+
+let canvasHeight = 0;
+
+let plotWidth = 0;
+
+let plotHeight = 0;
+
+let devicePixelRatioValue = 1;
+
+
+/* =========================================================
+   DISPLAY MAX FREQUENCY
+========================================================= */
+
+function getMaxFrequency() {
+
+    return validationMode
+        ? VALIDATION_MAX_FREQUENCY
+        : FULL_MAX_FREQUENCY;
+}
+
+
+/* =========================================================
+   RESIZE CANVAS
+========================================================= */
+
+function resizeCanvas() {
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+
+    devicePixelRatioValue =
+        Math.min(
+            window.devicePixelRatio || 1,
+            3
+        );
+
+
+    canvasWidth =
+        Math.max(
+            1,
+            Math.round(rect.width)
+        );
+
+    canvasHeight =
+        Math.max(
+            1,
+            Math.round(rect.height)
+        );
+
+
+    /*
+        High-resolution Canvas.
+
+        The physical pixel resolution is multiplied
+        by devicePixelRatio while CSS size remains
+        unchanged.
+    */
+
+    canvas.width =
+        Math.max(
+            1,
+            Math.round(
+                canvasWidth *
+                devicePixelRatioValue
+            )
+        );
+
+    canvas.height =
+        Math.max(
+            1,
+            Math.round(
+                canvasHeight *
+                devicePixelRatioValue
+            )
+        );
+
+
+    ctx.setTransform(
+        devicePixelRatioValue,
+        0,
+        0,
+        devicePixelRatioValue,
+        0,
+        0
+    );
+
+
+    plotWidth =
+        Math.max(
+            1,
+            canvasWidth -
+            AXIS_LEFT -
+            AXIS_RIGHT
+        );
+
+
+    plotHeight =
+        Math.max(
+            1,
+            canvasHeight -
+            AXIS_TOP -
+            AXIS_BOTTOM
+        );
+
+
+    /*
+        The spectrogram buffer also uses
+        device-pixel resolution.
+    */
+
+    spectrogramBuffer.width =
+        Math.max(
+            1,
+            Math.round(
+                plotWidth *
+                devicePixelRatioValue
+            )
+        );
+
+    spectrogramBuffer.height =
+        Math.max(
+            1,
+            Math.round(
+                plotHeight *
+                devicePixelRatioValue
+            )
+        );
+
+
+    bufferCtx.setTransform(
+        devicePixelRatioValue,
+        0,
+        0,
+        devicePixelRatioValue,
+        0,
+        0
+    );
+
+
+    clearBuffer();
+
+    drawCompleteCanvas();
+}
+
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+
+/* =========================================================
+   CLEAR BUFFER
+========================================================= */
+
+function clearBuffer() {
+
+    bufferCtx.save();
+
+
+    bufferCtx.setTransform(
+        devicePixelRatioValue,
+        0,
+        0,
+        devicePixelRatioValue,
+        0,
+        0
+    );
+
+
+    bufferCtx.fillStyle =
+        "#04080c";
+
+
+    bufferCtx.fillRect(
+        0,
+        0,
+        plotWidth,
+        plotHeight
+    );
+
+
+    bufferCtx.restore();
+}
+
+
+/* =========================================================
+   DRAW COMPLETE CANVAS
+========================================================= */
+
+function drawCompleteCanvas() {
+
+    ctx.save();
+
+
+    ctx.setTransform(
+        devicePixelRatioValue,
+        0,
+        0,
+        devicePixelRatioValue,
+        0,
+        0
+    );
+
+
+    ctx.fillStyle =
+        "#04080c";
+
+
+    ctx.fillRect(
+        0,
+        0,
+        canvasWidth,
+        canvasHeight
+    );
+
+
+    /*
+        Convert physical buffer size back to CSS size
+        when drawing.
+    */
+
+    if (
+        spectrogramBuffer.width > 0 &&
+        spectrogramBuffer.height > 0
+    ) {
+
+        ctx.imageSmoothingEnabled =
+            true;
+
+
+        ctx.imageSmoothingQuality =
+            "high";
+
+
+        ctx.drawImage(
+            spectrogramBuffer,
+            0,
+            0,
+            spectrogramBuffer.width,
+            spectrogramBuffer.height,
+            AXIS_LEFT,
+            AXIS_TOP,
+            plotWidth,
+            plotHeight
+        );
+    }
+
+
+    ctx.restore();
+
+
+    drawGridAndAxes();
+}
+
+
+/* =========================================================
+   AUDIO INITIALIZATION
+========================================================= */
+
+async function initializeAudio() {
+
+    if (!audioContext) {
+
+        const AudioContextClass =
+            window.AudioContext ||
+            window.webkitAudioContext;
+
+
+        if (!AudioContextClass) {
+
+            throw new Error(
+                "Web Audio API is not supported."
+            );
+        }
+
+
+        audioContext =
+            new AudioContextClass();
+
+
+        analyser =
+            audioContext.createAnalyser();
+
+
+        analyser.fftSize =
+            FFT_SIZE;
+
+
+        analyser.smoothingTimeConstant =
+            0.18;
+
+
+        analyser.minDecibels =
+            -90;
+
+
+        analyser.maxDecibels =
+            -10;
+
+
+        frequencyData =
+            new Uint8Array(
+                analyser.frequencyBinCount
+            );
+
+
+        sampleRateDisplay.textContent =
+            `${audioContext.sampleRate.toLocaleString()} Hz`;
+    }
+
+
+    if (
+        audioContext.state ===
+        "suspended"
+    ) {
+
+        await audioContext.resume();
+    }
+}
+
+
+/* =========================================================
+   MICROPHONE
+========================================================= */
+
+micButton.addEventListener(
+    "click",
+    async function() {
+
+        await startMicrophone();
+
+    }
+);
+
+
+/* =========================================================
+   START MICROPHONE
+========================================================= */
+
+async function startMicrophone() {
+
+    try {
+
+        await initializeAudio();
+
+
+        /*
+            Disconnect audio-file source.
+        */
+
+        if (audioSource) {
+
+            try {
+                audioSource.disconnect();
+            }
+            catch (error) {}
+
+            audioSource =
+                null;
+        }
+
+
+        /*
+            Stop old microphone stream.
+        */
+
+        if (microphoneStream) {
+
+            microphoneStream
+                .getTracks()
+                .forEach(
+                    track =>
+                        track.stop()
+                );
+
+            microphoneStream =
+                null;
+        }
+
+
+        if (microphoneSource) {
+
+            try {
+                microphoneSource.disconnect();
+            }
+            catch (error) {}
+
+            microphoneSource =
+                null;
+        }
+
+
+        /*
+            Request microphone permission.
+        */
+
+        microphoneStream =
+            await navigator.mediaDevices.getUserMedia({
+
+                audio: {
+
+                    echoCancellation: false,
+
+                    noiseSuppression: false,
+
+                    autoGainControl: false
+                }
+
+            });
+
+
+        microphoneSource =
+            audioContext.createMediaStreamSource(
+                microphoneStream
+            );
+
+
+        /*
+            MICROPHONE → ANALYSER ONLY
+
+            No connection to destination.
+
+            Therefore the microphone signal
+            is NOT played through speakers.
+        */
+
+        microphoneSource.connect(
+            analyser
+        );
+
+
+        currentInput =
+            "microphone";
+
+
+        running =
+            true;
+
+        frozen =
+            false;
+
+
+        freezeButton.textContent =
+            "⏸ Freeze";
+
+
+        emptyState.style.display =
+            "none";
+
+
+        fileName.textContent =
+            "Microphone input";
+
+
+        updateStatus(
+            validationMode
+                ? "Microphone active — 0–2 kHz validation view."
+                : "Microphone active — analyzing surrounding sound.",
+            "active"
+        );
+
+
+        startRendering();
+
+    }
+    catch (error) {
+
+        console.error(
+            "Microphone error:",
+            error
+        );
+
+
+        updateStatus(
+            "Microphone access failed. Check browser permissions.",
+            "error"
+        );
+
+
+        alert(
+            "Unable to access the microphone.\n\n" +
+            "Please allow microphone permission in your browser."
+        );
+    }
+}
+
+
+/* =========================================================
+   AUDIO FILE
+========================================================= */
+
+audioFileInput.addEventListener(
+    "change",
+    async function(event) {
+
+        const file =
+            event.target.files[0];
+
+
+        if (!file) {
+            return;
+        }
+
+
+        try {
+
+            await initializeAudio();
+
+
+            /*
+                Stop microphone.
+            */
+
+            if (microphoneStream) {
+
+                microphoneStream
+                    .getTracks()
+                    .forEach(
+                        track =>
+                            track.stop()
+                    );
+
+                microphoneStream =
+                    null;
+            }
+
+
+            if (microphoneSource) {
+
+                try {
+                    microphoneSource.disconnect();
+                }
+                catch (error) {}
+
+                microphoneSource =
+                    null;
+            }
+
+
+            /*
+                Remove old audio element.
+            */
+
+            if (audioElement) {
+
+                audioElement.pause();
+
+                audioElement.src = "";
+
+                audioElement =
+                    null;
+            }
+
+
+            /*
+                Disconnect old audio source.
+            */
+
+            if (audioSource) {
+
+                try {
+                    audioSource.disconnect();
+                }
+                catch (error) {}
+
+                audioSource =
+                    null;
+            }
+
+
+            /*
+                Create audio element.
+            */
+
+            audioElement =
+                document.createElement(
+                    "audio"
+                );
+
+
+            audioElement.preload =
+                "auto";
+
+
+            audioElement.src =
+                URL.createObjectURL(
+                    file
+                );
+
+
+            /*
+                Create analyser source.
+            */
+
+            audioSource =
+                audioContext.createMediaElementSource(
+                    audioElement
+                );
+
+
+            audioSource.connect(
+                analyser
+            );
+
+
+            /*
+                Audio file is connected to speakers.
+
+                This is intentional because the user
+                should be able to hear the selected file.
+            */
+
+            analyser.connect(
+                audioContext.destination
+            );
+
+
+            currentInput =
+                "file";
+
+
+            running =
+                true;
+
+            frozen =
+                false;
+
+
+            freezeButton.textContent =
+                "⏸ Freeze";
+
+
+            emptyState.style.display =
+                "none";
+
+
+            fileName.textContent =
+                file.name;
+
+
+            updateStatus(
+                "Audio file playing — analyzing signal.",
+                "active"
+            );
+
+
+            await audioElement.play();
+
+
+            startRendering();
+
+        }
+        catch (error) {
+
+            console.error(
+                "Audio file error:",
+                error
+            );
+
+
+            updateStatus(
+                "Unable to play the selected audio file.",
+                "error"
+            );
+
+
+            alert(
+                "The selected audio file could not be played."
+            );
+        }
+
+    }
+);
+
+
+/* =========================================================
+   START
+========================================================= */
+
+startButton.addEventListener(
+    "click",
+    async function() {
+
+        try {
+
+            await initializeAudio();
+
+
+            if (
+                currentInput ===
+                "microphone"
+            ) {
+
+                running =
+                    true;
+
+                frozen =
+                    false;
+
+
+                updateStatus(
+                    validationMode
+                        ? "Microphone active — 0–2 kHz validation view."
+                        : "Microphone active — analyzing.",
+                    "active"
+                );
+
+
+                startRendering();
+
+                return;
+            }
+
+
+            if (
+                currentInput ===
+                "file" &&
+                audioElement
+            ) {
+
+                await audioElement.play();
+
+
+                running =
+                    true;
+
+                frozen =
+                    false;
+
+
+                updateStatus(
+                    "Audio file playing — analyzing.",
+                    "active"
+                );
+
+
+                startRendering();
+
+                return;
+            }
+
+
+            /*
+                No source selected:
+                Start microphone.
+            */
+
+            await startMicrophone();
+
+        }
+        catch (error) {
+
+            console.error(
+                error
+            );
+        }
+
+    }
+);
+
+
+/* =========================================================
+   PAUSE
+========================================================= */
+
+pauseButton.addEventListener(
+    "click",
+    function() {
+
+        if (
+            currentInput ===
+            "file" &&
+            audioElement
+        ) {
+
+            audioElement.pause();
+
+            running =
+                false;
+
+
+            updateStatus(
+                "Audio playback paused.",
+                "ready"
+            );
+
+        }
+        else if (
+            currentInput ===
+            "microphone"
+        ) {
+
+            frozen =
+                true;
+
+
+            updateStatus(
+                "Spectrogram display paused.",
+                "ready"
+            );
+        }
+
+    }
+);
+
+
+/* =========================================================
+   STOP
+========================================================= */
+
+stopButton.addEventListener(
+    "click",
+    function() {
+
+        running =
+            false;
+
+
+        if (animationFrame) {
+
+            cancelAnimationFrame(
+                animationFrame
+            );
+
+            animationFrame =
+                null;
+        }
+
+
+        if (microphoneStream) {
+
+            microphoneStream
+                .getTracks()
+                .forEach(
+                    track =>
+                        track.stop()
+                );
+
+            microphoneStream =
+                null;
+        }
+
+
+        if (microphoneSource) {
+
+            try {
+                microphoneSource.disconnect();
+            }
+            catch (error) {}
+
+            microphoneSource =
+                null;
+        }
+
+
+        if (audioSource) {
+
+            try {
+                audioSource.disconnect();
+            }
+            catch (error) {}
+
+            audioSource =
+                null;
+        }
+
+
+        if (audioElement) {
+
+            audioElement.pause();
+        }
+
+
+        currentInput =
+            null;
+
+
+        emptyState.style.display =
+            "flex";
+
+
+        updateStatus(
+            "Stopped. Select an input source to begin again.",
+            "ready"
+        );
+
+    }
+);
+
+
+/* =========================================================
+   LINEAR
+========================================================= */
+
+linearButton.addEventListener(
+    "click",
+    function() {
+
+        frequencyScale =
+            "linear";
+
+
+        linearButton.classList.add(
+            "active"
+        );
+
+        logButton.classList.remove(
+            "active"
+        );
+
+
+        clearBuffer();
+
+        drawCompleteCanvas();
+    }
+);
+
+
+/* =========================================================
+   LOGARITHMIC
+========================================================= */
+
+logButton.addEventListener(
+    "click",
+    function() {
+
+        frequencyScale =
+            "log";
+
+
+        logButton.classList.add(
+            "active"
+        );
+
+        linearButton.classList.remove(
+            "active"
+        );
+
+
+        clearBuffer();
+
+        drawCompleteCanvas();
+    }
+);
+
+
+/* =========================================================
+   440 Hz VALIDATION
+========================================================= */
+
+validationButton.addEventListener(
+    "click",
+    function() {
+
+        validationMode =
+            !validationMode;
+
+
+        validationButton.classList.toggle(
+            "active",
+            validationMode
+        );
+
+
+        /*
+            Changing the visible frequency range
+            changes the frequency-to-pixel mapping.
+
+            Therefore the old image must be cleared.
+        */
+
+        clearBuffer();
+
+
+        if (validationMode) {
+
+            validationButton.textContent =
+                "↩ Full Range";
+
+
+            updateStatus(
+                "440 Hz validation view — 0–2 kHz.",
+                currentInput
+                    ? "active"
+                    : "ready"
+            );
+
+        }
+        else {
+
+            validationButton.textContent =
+                "440 Hz Validation";
+
+
+            updateStatus(
+                currentInput
+                    ? "Full frequency range — 0–24 kHz."
+                    : "Ready — full frequency range: 0–24 kHz.",
+                currentInput
+                    ? "active"
+                    : "ready"
+            );
+        }
+
+
+        drawCompleteCanvas();
+    }
+);
+
+
+/* =========================================================
+   FREEZE
+========================================================= */
+
+freezeButton.addEventListener(
+    "click",
+    function() {
+
+        frozen =
+            !frozen;
+
+
+        if (frozen) {
+
+            freezeButton.textContent =
+                "▶ Resume";
+
+
+            updateStatus(
+                "Spectrogram display frozen.",
+                "ready"
+            );
+
+        }
+        else {
+
+            freezeButton.textContent =
+                "⏸ Freeze";
+
+
+            updateStatus(
+                "Spectrogram display resumed.",
+                "active"
+            );
+
+
+            startRendering();
+        }
+
+    }
+);
+
+
+/* =========================================================
+   CLEAR
+========================================================= */
+
+clearButton.addEventListener(
+    "click",
+    function() {
+
+        clearBuffer();
+
+        drawCompleteCanvas();
+
+
+        peakFrequency.textContent =
+            "—";
+
+
+        validationPeak.textContent =
+            "—";
+
+
+        validationError.textContent =
+            "—";
+    }
+);
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+function updateStatus(
+    message,
+    type
+) {
+
+    statusText.textContent =
+        message;
+
+
+    statusDot.className =
+        "status-dot";
+
+
+    if (
+        type ===
+        "active"
+    ) {
+
+        statusDot.classList.add(
+            "active"
+        );
+    }
+
+
+    if (
+        type ===
+        "error"
+    ) {
+
+        statusDot.classList.add(
+            "error"
+        );
+    }
+}
+
+
+/* =========================================================
+   RENDER LOOP
+========================================================= */
+
+function startRendering() {
+
+    if (
+        animationFrame !== null
+    ) {
+
+        return;
+    }
+
+
+    function render() {
+
+        animationFrame =
+            requestAnimationFrame(
+                render
+            );
+
+
+        if (!running) {
+
+            cancelAnimationFrame(
+                animationFrame
+            );
+
+            animationFrame =
+                null;
+
+            return;
+        }
+
+
+        if (frozen) {
+
+            return;
+        }
+
+
+        drawSpectrogramColumn();
+    }
+
+
+    render();
+}
+
+
+/* =========================================================
+   DRAW SPECTROGRAM COLUMN
+========================================================= */
+
+function drawSpectrogramColumn() {
+
+    if (
+        !analyser ||
+        !frequencyData ||
+        spectrogramBuffer.width <= 0 ||
+        spectrogramBuffer.height <= 0
+    ) {
+
+        return;
+    }
+
+
+    /*
+        Get FFT data.
+    */
+
+    analyser.getByteFrequencyData(
+        frequencyData
+    );
+
+
+    const nyquist =
+        audioContext.sampleRate / 2;
+
+
+    const displayMaxFrequency =
+        getMaxFrequency();
+
+
+    /* =====================================================
+       FIND PEAK
+    ===================================================== */
+
+    let maxValue =
+        0;
+
+    let maxIndex =
+        0;
+
+
+    const maxSearchIndex =
+        Math.min(
+            frequencyData.length - 1,
+
+            Math.floor(
+                displayMaxFrequency /
+                nyquist *
+                frequencyData.length
+            )
+        );
+
+
+    for (
+        let i = 0;
+        i <= maxSearchIndex;
+        i++
+    ) {
+
+        if (
+            frequencyData[i] >
+            maxValue
+        ) {
+
+            maxValue =
+                frequencyData[i];
+
+            maxIndex =
+                i;
+        }
+    }
+
+
+    const detectedFrequency =
+        maxIndex *
+        nyquist /
+        frequencyData.length;
+
+
+    if (
+        maxValue > 8
+    ) {
+
+        const rounded =
+            Math.round(
+                detectedFrequency
+            );
+
+
+        peakFrequency.textContent =
+            `${rounded} Hz`;
+
+
+        validationPeak.textContent =
+            `${rounded} Hz`;
+
+
+        const error =
+            Math.abs(
+                rounded - 440
+            );
+
+
+        validationError.textContent =
+            `${error} Hz`;
+    }
+
+
+    /* =====================================================
+       BUFFER SCROLL
+    ===================================================== */
+
+    /*
+        Work in CSS-pixel coordinates while the
+        buffer itself is high-resolution.
+    */
+
+    const width =
+        plotWidth;
+
+    const height =
+        plotHeight;
+
+
+    /*
+        Shift existing image left by 1 CSS pixel.
+
+        Because the buffer is high-resolution, this
+        remains sharp on Retina/high-DPI screens.
+    */
+
+    if (
+        width > 1
+    ) {
+
+        const image =
+            bufferCtx.getImageData(
+                devicePixelRatioValue,
+                0,
+                Math.max(
+                    1,
+                    spectrogramBuffer.width -
+                    devicePixelRatioValue
+                ),
+                spectrogramBuffer.height
+            );
+
+
+        bufferCtx.putImageData(
+            image,
+            0,
+            0
+        );
+    }
+
+
+    /* =====================================================
+       DRAW NEW COLUMN
+    ===================================================== */
+
+    const physicalColumnWidth =
+        Math.max(
+            1,
+            Math.round(
+                devicePixelRatioValue
+            )
+        );
+
+
+    /*
+        Draw the new FFT column in CSS-pixel
+        coordinate space.
+    */
+
+    for (
+        let y = 0;
+        y < height;
+        y++
+    ) {
+
+        const frequency =
+            yToFrequency(
+                y,
+                height,
+                displayMaxFrequency
+            );
+
+
+        const index =
+            Math.min(
+                frequencyData.length - 1,
+
+                Math.max(
+                    0,
+
+                    Math.round(
+                        frequency /
+                        nyquist *
+                        frequencyData.length
+                    )
+                )
+            );
+
+
+        const magnitude =
+            frequencyData[index];
+
+
+        bufferCtx.fillStyle =
+            magnitudeToColor(
+                magnitude
+            );
+
+
+        /*
+            Draw slightly more than one physical
+            pixel when necessary to avoid gaps.
+        */
+
+        bufferCtx.fillRect(
+            plotWidth - 1,
+            y,
+            1.25,
+            1
+        );
+    }
+
+
+    drawCompleteCanvas();
+}
+
+
+/* =========================================================
+   FREQUENCY → Y
+========================================================= */
+
+function frequencyToY(
+    frequency,
+    height,
+    maxFrequency
+) {
+
+    if (
+        frequencyScale ===
+        "linear"
+    ) {
+
+        const normalized =
+            frequency /
+            maxFrequency;
+
+
+        return (
+            height *
+            (1 - normalized)
+        );
+    }
+
+
+    /*
+        Logarithmic scale.
+
+        20 Hz is used as the minimum visible
+        logarithmic frequency.
+    */
+
+    const minFrequency =
+        20;
+
+
+    const clamped =
+        Math.max(
+            minFrequency,
+
+            Math.min(
+                maxFrequency,
+                frequency
+            )
+        );
+
+
+    const logMin =
+        Math.log10(
+            minFrequency
+        );
+
+    const logMax =
+        Math.log10(
+            maxFrequency
+        );
+
+    const logValue =
+        Math.log10(
+            clamped
+        );
+
+
+    const normalized =
+        (logValue - logMin) /
+        (logMax - logMin);
+
+
+    return (
+        height *
+        (1 - normalized)
+    );
+}
+
+
+/* =========================================================
+   Y → FREQUENCY
+========================================================= */
+
+function yToFrequency(
+    y,
+    height,
+    maxFrequency
+) {
+
+    const normalized =
+        1 -
+        y /
+        height;
+
+
+    if (
+        frequencyScale ===
+        "linear"
+    ) {
+
+        return (
+            normalized *
+            maxFrequency
+        );
+    }
+
+
+    const minFrequency =
+        20;
+
+
+    const logMin =
+        Math.log10(
+            minFrequency
+        );
+
+    const logMax =
+        Math.log10(
+            maxFrequency
+        );
+
+
+    const logFrequency =
+        logMin +
+        normalized *
+        (logMax - logMin);
+
+
+    return Math.pow(
+        10,
+        logFrequency
+    );
+}
+
+
+/* =========================================================
+   SMOOTH COLOR MAPPING
+========================================================= */
+
+function magnitudeToColor(
+    value
+) {
+
+    /*
+        Convert magnitude to normalized
+        intensity.
+
+        The gamma curve makes weaker signals
+        more visible while preserving strong
+        signals.
+    */
+
+    let intensity =
+        value / 255;
+
+
+    intensity =
+        Math.pow(
+            intensity,
+            0.62
+        );
+
+
+    /*
+        Slight noise-floor suppression.
+    */
+
+    if (
+        intensity < 0.025
+    ) {
+
+        intensity =
+            0;
+    }
+
+
+    /*
+        Multi-stop continuous gradient.
+
+        Dark blue
+            ↓
+        blue
+            ↓
+        cyan
+            ↓
+        yellow
+            ↓
+        white
+    */
+
+    let r;
+    let g;
+    let b;
+
+
+    if (
+        intensity < 0.18
+    ) {
+
+        const t =
+            intensity /
+            0.18;
+
+
+        r =
+            3 +
+            5 * t;
+
+        g =
+            10 +
+            40 * t;
+
+        b =
+            28 +
+            75 * t;
+
+    }
+    else if (
+        intensity < 0.38
+    ) {
+
+        const t =
+            (intensity - 0.18) /
+            0.20;
+
+
+        r =
+            8 +
+            15 * t;
+
+        g =
+            50 +
+            105 * t;
+
+        b =
+            103 +
+            90 * t;
+
+    }
+    else if (
+        intensity < 0.58
+    ) {
+
+        const t =
+            (intensity - 0.38) /
+            0.20;
+
+
+        r =
+            23 +
+            90 * t;
+
+        g =
+            155 +
+            75 * t;
+
+        b =
+            193 +
+            20 * t;
+
+    }
+    else if (
+        intensity < 0.78
+    ) {
+
+        const t =
+            (intensity - 0.58) /
+            0.20;
+
+
+        r =
+            113 +
+            135 * t;
+
+        g =
+            230 +
+            10 * t;
+
+        b =
+            213 -
+            135 * t;
+
+    }
+    else {
+
+        const t =
+            (intensity - 0.78) /
+            0.22;
+
+
+        r =
+            248 +
+            7 * t;
+
+        g =
+            240 -
+            90 * t;
+
+        b =
+            78 -
+            60 * t;
+    }
+
+
+    return `rgb(
+        ${Math.round(r)},
+        ${Math.round(g)},
+        ${Math.round(b)}
+    )`;
+}
+
+
+/* =========================================================
+   GRID AND AXES
+========================================================= */
+
+function drawGridAndAxes() {
+
+    if (
+        canvasWidth <= 0 ||
+        canvasHeight <= 0
+    ) {
+
+        return;
+    }
+
+
+    const displayMaxFrequency =
+        getMaxFrequency();
+
+
+    const width =
+        plotWidth;
+
+    const height =
+        plotHeight;
+
+
+    ctx.save();
+
+
+    ctx.setTransform(
+        devicePixelRatioValue,
+        0,
+        0,
+        devicePixelRatioValue,
+        0,
+        0
+    );
+
+
+    /* =====================================================
+       FREQUENCY TICKS
+    ===================================================== */
+
+    let frequencyTicks;
+
+
+    if (
+        validationMode &&
+        frequencyScale ===
+        "linear"
+    ) {
+
+        /*
+            Detailed low-frequency grid
+            for 440 Hz validation.
+        */
+
+        frequencyTicks = [
+
+            0,
+            200,
+            400,
+            440,
+            600,
+            800,
+            1000,
+            1200,
+            1400,
+            1600,
+            1800,
+            2000
+
+        ];
+
+    }
+    else if (
+        validationMode &&
+        frequencyScale ===
+        "log"
+    ) {
+
+        frequencyTicks = [
+
+            20,
+            50,
+            100,
+            200,
+            300,
+            400,
+            440,
+            500,
+            700,
+            1000,
+            1500,
+            2000
+
+        ];
+
+    }
+    else if (
+        frequencyScale ===
+        "linear"
+    ) {
+
+        frequencyTicks = [
+
+            0,
+            3000,
+            6000,
+            9000,
+            12000,
+            15000,
+            18000,
+            21000,
+            24000
+
+        ];
+
+    }
+    else {
+
+        frequencyTicks = [
+
+            20,
+            50,
+            100,
+            200,
+            500,
+            1000,
+            2000,
+            5000,
+            10000,
+            20000
+
+        ].filter(
+            value =>
+                value <=
+                displayMaxFrequency
+        );
+    }
+
+
+    /* =====================================================
+       FREQUENCY GRID
+    ===================================================== */
+
+    ctx.font =
+        "11px Arial";
+
+
+    for (
+        const frequency
+        of frequencyTicks
+    ) {
+
+        const y =
+            AXIS_TOP +
+            frequencyToY(
+                frequency,
+                height,
+                displayMaxFrequency
+            );
+
+
+        /*
+            Special highlight for 440 Hz.
+        */
+
+        const is440 =
+            validationMode &&
+            Math.abs(
+                frequency - 440
+            ) < 0.001;
+
+
+        if (is440) {
+
+            ctx.strokeStyle =
+                "rgba(255,255,255,0.60)";
+
+            ctx.lineWidth =
+                1.5;
+
+        }
+        else {
+
+            ctx.strokeStyle =
+                "rgba(255,255,255,0.105)";
+
+            ctx.lineWidth =
+                1;
+        }
+
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            AXIS_LEFT,
+            y
+        );
+
+        ctx.lineTo(
+            AXIS_LEFT + width,
+            y
+        );
+
+        ctx.stroke();
+
+
+        /*
+            Label.
+        */
+
+        ctx.fillStyle =
+            is440
+                ? "#ffffff"
+                : "#8ea1ad";
+
+
+        ctx.font =
+            is440
+                ? "bold 11px Arial"
+                : "11px Arial";
+
+
+        ctx.textAlign =
+            "right";
+
+        ctx.textBaseline =
+            "middle";
+
+
+        ctx.fillText(
+            formatFrequency(
+                frequency
+            ),
+            AXIS_LEFT - 10,
+            y
+        );
+
+
+        /*
+            Add a small 440 Hz label
+            inside the plot.
+        */
+
+        if (is440) {
+
+            ctx.fillStyle =
+                "rgba(255,255,255,0.92)";
+
+
+            ctx.textAlign =
+                "left";
+
+            ctx.textBaseline =
+                "bottom";
+
+
+            ctx.fillText(
+                "440 Hz reference",
+                AXIS_LEFT + 9,
+                y - 5
+            );
+        }
+    }
+
+
+    /* =====================================================
+       TIME GRID
+    ===================================================== */
+
+    const timeDivisions =
+        8;
+
+
+    for (
+        let i = 0;
+        i <= timeDivisions;
+        i++
+    ) {
+
+        const x =
+            AXIS_LEFT +
+            width *
+            i /
+            timeDivisions;
+
+
+        ctx.strokeStyle =
+            "rgba(255,255,255,0.085)";
+
+        ctx.lineWidth =
+            1;
+
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x,
+            AXIS_TOP
+        );
+
+        ctx.lineTo(
+            x,
+            AXIS_TOP + height
+        );
+
+        ctx.stroke();
+
+
+        ctx.fillStyle =
+            "#8ea1ad";
+
+
+        ctx.font =
+            "11px Arial";
+
+
+        ctx.textAlign =
+            "center";
+
+        ctx.textBaseline =
+            "top";
+
+
+        ctx.fillText(
+            `${i} s`,
+            x,
+            AXIS_TOP + height + 11
+        );
+    }
+
+
+    /* =====================================================
+       AXIS LABELS
+    ===================================================== */
+
+    ctx.fillStyle =
+        "#bfd0d8";
+
+
+    ctx.font =
+        "bold 12px Arial";
+
+
+    ctx.textAlign =
+        "center";
+
+    ctx.textBaseline =
+        "bottom";
+
+
+    ctx.fillText(
+        "Time (s)",
+        AXIS_LEFT +
+        width / 2,
+        canvasHeight - 8
+    );
+
+
+    /* =====================================================
+       FREQUENCY TITLE
+    ===================================================== */
+
+    ctx.save();
+
+
+    ctx.translate(
+        17,
+        AXIS_TOP +
+        height / 2
+    );
+
+
+    ctx.rotate(
+        -Math.PI / 2
+    );
+
+
+    ctx.textAlign =
+        "center";
+
+    ctx.textBaseline =
+        "middle";
+
+
+    ctx.fillText(
+        "Frequency (Hz)",
+        0,
+        0
+    );
+
+
+    ctx.restore();
+
+
+    /* =====================================================
+       BORDER
+    ===================================================== */
+
+    ctx.strokeStyle =
+        "rgba(255,255,255,0.16)";
+
+    ctx.lineWidth =
+        1;
+
+
+    ctx.strokeRect(
+        AXIS_LEFT,
+        AXIS_TOP,
+        width,
+        height
+    );
+
+
+    ctx.restore();
+}
+
+
+/* =========================================================
+   FREQUENCY FORMAT
+========================================================= */
+
+function formatFrequency(
+    frequency
+) {
+
+    if (
+        frequency >= 1000
+    ) {
+
+        const value =
+            frequency / 1000;
+
+
+        if (
+            value >= 10
+        ) {
+
+            return `${value.toFixed(0)}k`;
+        }
+
+
+        return `${value.toFixed(1)}k`;
+    }
+
+
+    return `${Math.round(frequency)}`;
+}
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+resizeCanvas();
+
+
+updateStatus(
+    "Ready — select Microphone or Audio File.",
+    "ready"
+);
+
+</script>
+
+</body>
+</html>
